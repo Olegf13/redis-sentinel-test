@@ -1,0 +1,22 @@
+master:
+  image: redis:5.0.9
+slave:
+  image: redis:5.0.9
+  command: redis-server --slaveof redis-master 6379
+  links:
+    - master:redis-master
+sentinel:
+  build: sentinel
+  environment:
+    - SENTINEL_DOWN_AFTER=5000
+    - SENTINEL_FAILOVER=5000
+  links:
+    - master:redis-master
+    - slave
+php:
+  build: php
+  volumes:
+    - .:/var/www/html
+  links:
+    - master:redis
+    - sentinel
