@@ -1,0 +1,23 @@
+{
+  "name": "olegf13/redis-sentinel-test",
+  "description": "Test Redis master-replica deployment with Sentinel",
+  "type": "library",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Oleg Fedorov",
+      "email": "olegf39@gmail.com"
+    }
+  ],
+  "require": {
+    "php": "^7.3",
+    "ext-redis": "^5.2"
+  },
+  "require-dev": {
+  },
+  "autoload": {
+    "psr-4": {
+      "Olegf13\\Sentinel\\": "src/"
+    }
+  }
+}

@@ -6,7 +6,7 @@ slave:
   links:
     - master:redis-master
 sentinel:
-  build: sentinel
+  build: ./docker/sentinel
   environment:
     - SENTINEL_DOWN_AFTER=5000
     - SENTINEL_FAILOVER=5000
@@ -14,7 +14,7 @@ sentinel:
     - master:redis-master
     - slave
 php:
-  build: php
+  build: ./docker/php
   volumes:
     - .:/var/www/html
   links:
