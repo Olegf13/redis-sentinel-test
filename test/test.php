@@ -2,44 +2,50 @@
 
 declare(strict_types=1);
 
+namespace Olegf13\Sentinel\Test;
+
 require_once __DIR__ . '/../vendor/autoload.php';
 
 use Olegf13\Sentinel\RedisSentinelConnectionParams;
 use Olegf13\Sentinel\SentinelConnection;
+use Psr\Log\Test\TestLogger;
 
 $sentinelConnection = (new RedisSentinelConnectionParams('sentinel'))
     ->setTimeout(1.0)
     ->setRetryInterval(100)
     ->setReadTimeout(1.0);
-$sentinel = new SentinelConnection($sentinelConnection);
+$sentinel = new SentinelConnection(
+    $sentinelConnection,
+    SentinelConnection::DEFAULT_MASTER,
+    new TestLogger()
+);
 
-$counter = 100;
-while (true) {
-    echo $sentinel->getMasterAddr(), \PHP_EOL;
-    try {
-        $redisHost = $sentinel->getRedis()->getHost();
-        $setResult = $sentinel->getRedis()->set('some', $counter++);
-        echo 'Set result is ', \var_export($setResult, true), \PHP_EOL;
-    } catch (\RedisException $e) {
-        echo 'We were trying to write into: ', $redisHost, \PHP_EOL;
-        throw $e;
+try {
+    $counter = 100;
+    $redisHost = (string) $sentinel->getMasterAddr();
+    echo <<<INTRO
+Redis FAILOVER test.
+
+Script will cause a failover every some random time, and will tell about it.
+Use `Ctrl + C` to exit.
+
+Redis host on execution start: {$redisHost}
+
+
+INTRO;
+
+    while (true) {
+        if ($sentinel->getRedis()->set('some', $counter++) === false) {
+            throw new \RedisException('Error! Redis SET failed for some reason');
+        }
+        $sentinel->getRedis()->get('some');
+        \usleep(50 * 1000);
+        if (\mt_rand() % \random_int(17, 173) === 0) {
+            echo 'Failover started! ', 'Old Redis host: ', $sentinel->getMasterAddr(), ' ... ';
+            $sentinel->forceFailover();
+            echo 'Failover finished! ', 'Current Redis host: ', $sentinel->getMasterAddr(), \PHP_EOL;
+        }
     }
-
-    echo 'Key `some` value is: ', $sentinel->getRedis()->get('some'), \PHP_EOL;
-
-//    try {
-//        $blPopResult = $sentinel->getRedis()->blPop('some_list', 5);
-//        echo 'BLPOP result: ', var_export($blPopResult, true), \PHP_EOL;
-//    } catch (RedisException $e) {
-//        if (\mb_strpos($e->getMessage(), 'read error on connection') !== 0) {
-//            throw $e;
-//        }
-//        echo 'WARNING: ', $e->getMessage(), \PHP_EOL;
-//    }
-
-//    $result = $sentinel->getSentinel()->master('mymaster');
-//    print_r($result);
-
-    echo \PHP_EOL, \PHP_EOL;
-    usleep(50 * 1000);
+} catch (\Throwable $e) {
+    echo 'Exception: ', $e->getMessage(), \PHP_EOL;
 }

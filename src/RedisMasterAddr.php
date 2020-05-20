@@ -42,7 +42,7 @@ class RedisMasterAddr
             $port = (int) $params[1];
         }
 
-        return new static((string) $host, $port);
+        return new self((string) $host, $port);
     }
 
     /**
